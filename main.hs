@@ -372,3 +372,120 @@ exAtribCond = AtribCond (Leq (Var "x") (Num 5)) (Var "z") (Num 1) (Num 2)
 
 exSwap :: C
 exSwap = Swap (Var "x") (Var "y")
+
+
+---
+---   Exemplos ---
+---
+
+fibonacci :: Int -> C
+fibonacci val =
+  Seq
+    (Atrib (Var "x") (Num 0))
+    (Seq
+      (Atrib (Var "y") (Num 1))
+      (Seq
+        (Atrib (Var "n") (Num val))
+        (While (Not (Igual (Var "n") (Num 1)))
+          (Seq
+            (Atrib (Var "temp") (Var "x"))
+            (Seq           -- x aqui recebe y
+               (DuplaATrib (Var "x") (Var "y") (Var "y")
+                           -- y aqui vai receber temp (Valor original de x) + y
+                           (Soma (Var "temp") (Var "y")))
+               (Atrib (Var "n") (Sub (Var "n") (Num 1)))
+            )
+          )
+        )
+      )
+    )
+
+--- Para rodar:
+--- *Main> runFibonacci 5
+--- Fibonacci(5) = 5
+---
+--- Após o loop: x = F(n-1), y = F(n). Logo lemos "y".
+--- A memória precisa ter todas as variáveis usadas pelo programa.
+
+runFibonacci :: Int -> IO ()
+runFibonacci n = do
+    let mem = [("x",0), ("y",0), ("n",0), ("temp",0)]
+    let (_, memFinal) = interpretadorC (fibonacci n, mem)
+    let resultado = procuraVar memFinal "y"
+    putStrLn $ "Fibonacci(" ++ show n ++ ") = " ++ show resultado ++ "\n"
+
+
+calculaLinha :: C
+calculaLinha =
+  Seq
+    (Atrib (Var "spaces") (Sub (Var "h") (Var "i")))
+    (Atrib (Var "stars") (Sub (Mult (Num 2) (Var "i")) (Num 1)))
+
+desenhaLinha :: Int -> Int -> IO ()
+desenhaLinha altura linhaAtual = do
+    let memInicial = [("h", altura), ("i", linhaAtual), ("spaces", 0), ("stars", 0)]
+    let (_, memFinal) = interpretadorC (calculaLinha, memInicial)
+    let espacos = procuraVar memFinal "spaces"
+    let estrelas = procuraVar memFinal "stars"
+    putStrLn (replicate espacos ' ' ++ replicate estrelas '*')
+
+executaLoopVisual :: Int -> Int -> IO ()
+executaLoopVisual altura i = do
+    if fst (interpretadorB (Leq (Num i) (Num altura), [])) == FALSE
+       then return ()
+       else do
+           desenhaLinha altura i
+           executaLoopVisual altura (i + 1)
+
+printArvore :: Int -> IO ()
+printArvore altura = do
+   executaLoopVisual altura 1
+   putStrLn (replicate (altura - 1) ' ' ++ "|")
+   putStrLn (replicate (altura - 1) ' ' ++ "|")
+
+
+sort3Vars :: Int -> Int -> Int -> C
+sort3Vars a b c =
+  Seq
+    (DuplaATrib (Var "x") (Var "y") (Num a) (Num b))
+    (Seq
+      (Atrib (Var "z") (Num c))
+      (Seq
+        (If (Leq (Var "x") (Var "y"))
+            Skip
+            (Seq
+               (DuplaATrib (Var "temp") (Var "x") (Var "x") (Var "y"))
+               (Atrib (Var "y") (Var "temp"))
+            )
+        )
+        (Seq
+          (If (Leq (Var "y") (Var "z"))
+              Skip
+              (Seq
+                 (DuplaATrib (Var "temp") (Var "y") (Var "y") (Var "z"))
+                 (Atrib (Var "z") (Var "temp"))
+              )
+          )
+          (If (Leq (Var "x") (Var "y"))
+              Skip
+              (Seq
+                 (DuplaATrib (Var "temp") (Var "x") (Var "x") (Var "y"))
+                 (Atrib (Var "y") (Var "temp"))
+              )
+          )
+        )
+      )
+    )
+
+--- Para rodar:
+--- *Main> runSort3Vars 3 1 2
+--- Sorted values: 1, 2, 3
+
+runSort3Vars :: Int -> Int -> Int -> IO ()
+runSort3Vars a b c = do
+    let mem = [("x",0), ("y",0), ("z",0), ("temp",0)]
+    let (_, memFinal) = interpretadorC (sort3Vars a b c, mem)
+    let xSorted = procuraVar memFinal "x"
+    let ySorted = procuraVar memFinal "y"
+    let zSorted = procuraVar memFinal "z"
+    putStrLn $ "Sorted values: " ++ show xSorted ++ ", " ++ show ySorted ++ ", " ++ show zSorted ++ "\n"
