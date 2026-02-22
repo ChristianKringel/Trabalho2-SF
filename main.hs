@@ -24,11 +24,11 @@ data C = While B C
     | Skip
     | TenTimes C   ---- Executa o comando C 10 vezes
     | Repeat C B --- Repeat C until B: executa C enquanto B é falso
-    | Loop E E C      ---- Loop e1 e2 c: executa (e2 - e1) vezes o comando C 
+    | Loop E E C      ---- Loop e1 e2 c: executa (e2 - e1) vezes o comando C
     | DuplaATrib E E E E -- recebe 2 variáveis e 2 expressões (DuplaATrib (Var v1) (Var v2) e1 e2) e faz v1:=e1 e v2:=e2
     | AtribCond B E E E --- AtribCond b (Var v1) e1 e2: se b for verdade, então faz v1:e1, se B for falso faz v1:=e2
-    | Swap E E -- swap(x,y): troca o conteúdo das variáveis x e y 
-   deriving(Eq,Show)         
+    | Swap E E -- swap(x,y): troca o conteúdo das variáveis x e y
+   deriving(Eq,Show)
 
 -----------------------------------------------------
 -----
@@ -95,24 +95,30 @@ smallStepE (Soma (Num n) e, s)         = let (el,sl) = smallStepE (e,s)
 smallStepE (Soma e1 e2,s)              = let (el,sl) = smallStepE (e1,s)
                                          in (Soma el e2,sl)
 
--- Mult 
+-- Mult
 smallStepE (Mult (Num n1) (Num n2), s) = (Num (n1 * n2), s)
 smallStepE (Mult (Num n) e, s)         = let (el,sl) = smallStepE (e,s)
                                          in (Mult (Num n) el, sl)
 smallStepE (Mult e1 e2,s)              = let (el,sl) = smallStepE (e1,s)
                                          in (Mult el e2,sl)
 
--- Sub                                        
+-- Sub
 smallStepE (Sub (Num n1) (Num n2),s)  = (Num (n1 - n2), s)
-smallStepE (Sub (Num n) e,s)              = let(el, sl) = smallStepE (e, s)
-                                         in (Sub (Num n) el, sl)
-smallStepE (Sub e1 e2,s)              = let(el, sl) = smallStepE (e1, s)
-                                         in (Sub el e2, sl)
+smallStepE (Sub (Num n) e,s)          = let (el, sl) = smallStepE (e, s)
+                                        in (Sub (Num n) el, sl)
+smallStepE (Sub e1 e2,s)              = let (el, sl) = smallStepE (e1, s)
+                                        in (Sub el e2, sl)
 
--- Booleans 
+-- Booleans
 smallStepB :: (B,Memoria) -> (B, Memoria)
--- smallStepB (Not b,s) 
--- AND
+
+-- Not (NOT1, NOT2, NOT3)
+smallStepB (Not TRUE, s)  = (FALSE, s)                         -- NOT2: ¬True  → False
+smallStepB (Not FALSE, s) = (TRUE, s)                          -- NOT3: ¬False → True
+smallStepB (Not b, s)     = let (b1, s1) = smallStepB (b, s)  -- NOT1: B → B' / ¬B → ¬B'
+                             in (Not b1, s1)
+
+-- AND (AND1, AND2, AND3)
 smallStepB (And TRUE TRUE, s)   = (TRUE, s)
 smallStepB (And TRUE FALSE, s)  = (FALSE, s)
 smallStepB (And FALSE TRUE, s)  = (FALSE, s)
@@ -122,29 +128,89 @@ smallStepB (And TRUE b, s)      = let (b1, s1) = smallStepB (b, s)
 smallStepB (And b1 b2, s)       = let (b1', s1) = smallStepB (b1, s)
                                   in (And b1' b2, s1)
 
--- OR 
-smallStepB (OR TRUE TRUE, s)   = (TRUE, s)
-smallStepB (OR TRUE FALSE, s)  = (TRUE, s)
-smallStepB (OR FALSE TRUE, s)  = (TRUE, s)
-smallStepB (OR FALSE FALSE, s) = (FALSE, s)
-smallStepB (OR TRUE b, s)      = let (b1, s1) = smallStepB (b, s)
-                                  in (OR TRUE b1, s1)
-smallStepB (OR b1 b2, s)       = let (b1', s1) = smallStepB (b1, s)
-                                  in (OR b1' b2, s1)
---smallStepB (Leq e1 e2, s) =
---smallStepB (Igual e1 e2, s) = -- recebe duas expressões aritméticas e devolve um valor booleano dizendo se são iguais
+-- OR (OR1, OR2, OR3)
+smallStepB (Or TRUE TRUE, s)   = (TRUE, s)
+smallStepB (Or TRUE FALSE, s)  = (TRUE, s)
+smallStepB (Or FALSE TRUE, s)  = (TRUE, s)
+smallStepB (Or FALSE FALSE, s) = (FALSE, s)
+smallStepB (Or TRUE b, s)      = let (b1, s1) = smallStepB (b, s)
+                                  in (Or TRUE b1, s1)
+smallStepB (Or b1 b2, s)       = let (b1', s1) = smallStepB (b1, s)
+                                  in (Or b1' b2, s1)
 
--- smallStepC :: (C,Memoria) -> (C,Memoria)
--- smallStepC (If b c1 c2,s)  
---smallStepC (Seq c1 c2,s)  
---smallStepC (Atrib (Var x) e,s) 
---smallStepC (While b c, s) 
- -- TenTimes C   ---- Executa o comando C 10 vezes
- -- Repeat C B --- Repeat C until B: executa C enquanto B é falso
- -- Loop E E C      ---- Loop e1 e2 c: executa (e2 - e1) vezes o comando C 
- -- DuplaATrib E E E E -- recebe 2 variáveis e 2 expressões (DuplaATrib (Var v1) (Var v2) e1 e2) e faz v1:=e1 e v2:=e2
- -- AtribCond B E E E --- AtribCond b (Var v1) e1 e2: se b for verdade, então faz v1:e1, se B for falso faz v1:=e2
- -- Swap E E -- swap(x,y): troca o conteúdo das variáveis x e y 
+-- Leq (LEQ1, LEQ2, LEQ3)
+smallStepB (Leq (Num n1) (Num n2), s) = if n1 <= n2 then (TRUE, s) else (FALSE, s)  -- LEQ3: n1≤n2 → b
+smallStepB (Leq (Num n) e, s)         = let (e1, s1) = smallStepE (e, s)             -- LEQ2: n≤E → n≤E'
+                                         in (Leq (Num n) e1, s1)
+smallStepB (Leq e1 e2, s)             = let (e1', s1) = smallStepE (e1, s)           -- LEQ1: E1→E1' / E1≤E2→E1'≤E2
+                                         in (Leq e1' e2, s1)
+
+-- Igual (análogo ao Leq, mas com igualdade)
+smallStepB (Igual (Num n1) (Num n2), s) = if n1 == n2 then (TRUE, s) else (FALSE, s)
+smallStepB (Igual (Num n) e, s)         = let (e1, s1) = smallStepE (e, s)
+                                           in (Igual (Num n) e1, s1)
+smallStepB (Igual e1 e2, s)             = let (e1', s1) = smallStepE (e1, s)
+                                           in (Igual e1' e2, s1)
+
+-- Comandos
+smallStepC :: (C,Memoria) -> (C,Memoria)
+
+-- Atrib (ATRIB1, ATRIB2)
+smallStepC (Atrib (Var x) (Num n), s) = (Skip, mudaVar s x n)           -- ATRIB2: x:=n → Skip, σ[x↦n]
+smallStepC (Atrib (Var x) e, s)       = let (e', s') = smallStepE (e, s) -- ATRIB1: E→E' / x:=E→x:=E'
+                                         in (Atrib (Var x) e', s')
+
+-- Seq (SEQ1, SEQ2)
+smallStepC (Seq Skip c2, s) = (c2, s)                                    -- SEQ2: Skip;C2 → C2
+smallStepC (Seq c1 c2, s)   = let (c1', s') = smallStepC (c1, s)         -- SEQ1: C1→C1' / C1;C2→C1';C2
+                               in (Seq c1' c2, s')
+
+-- If (IF1, IF2, IF3)
+smallStepC (If TRUE  c1 c2, s) = (c1, s)                                 -- IF2: if True  then C1 else C2 → C1
+smallStepC (If FALSE c1 c2, s) = (c2, s)                                 -- IF3: if False then C1 else C2 → C2
+smallStepC (If b c1 c2, s)     = let (b', s') = smallStepB (b, s)        -- IF1: B→B' / if B then C1 else C2 → if B' then C1 else C2
+                                  in (If b' c1 c2, s')
+
+-- While (WHILE)
+-- While B do C → if B then (C ; While B do C) else Skip
+smallStepC (While b c, s) = (If b (Seq c (While b c)) Skip, s)
+
+-- TenTimes C: executa C exatamente 10 vezes
+-- TenTimes C → C;C;C;C;C;C;C;C;C;C
+smallStepC (TenTimes c, s) =
+  (Seq c (Seq c (Seq c (Seq c (Seq c (Seq c (Seq c (Seq c (Seq c (Seq c Skip))))))))), s)
+
+-- Repeat C B: executa C enquanto B for falso (repeat-until)
+-- Repeat C B → C ; if B then Skip else (Repeat C B)
+smallStepC (Repeat c b, s) = (Seq c (If b Skip (Repeat c b)), s)
+
+-- Loop e1 e2 c: executa C (e2 - e1) vezes usando e1 como contador crescente
+-- Se e1 não é valor, reduz e1 primeiro
+-- Se e2 não é valor, reduz e2 primeiro
+-- Se n1 >= n2, termina (Skip)
+-- Se n1 <  n2, executa C e incrementa o contador: C ; Loop (n1+1) n2 c
+smallStepC (Loop (Num n1) (Num n2) c, s)
+  | n1 >= n2  = (Skip, s)
+  | otherwise = (Seq c (Loop (Num (n1 + 1)) (Num n2) c), s)
+smallStepC (Loop (Num n) e c, s) = let (e', s') = smallStepE (e, s)
+                                    in (Loop (Num n) e' c, s')
+smallStepC (Loop e1 e2 c, s)     = let (e1', s') = smallStepE (e1, s)
+                                    in (Loop e1' e2 c, s')
+
+-- DuplaATrib (Var v1) (Var v2) e1 e2: faz v1:=e1 e v2:=e2 sequencialmente
+-- DuplaATrib x1 x2 e1 e2 → (x1:=e1) ; (x2:=e2)
+smallStepC (DuplaATrib x1 x2 e1 e2, s) = (Seq (Atrib x1 e1) (Atrib x2 e2), s)
+
+-- AtribCond b (Var v) e1 e2: se b for verdade faz v:=e1, senão faz v:=e2
+-- AtribCond b x e1 e2 → if b then (x:=e1) else (x:=e2)
+smallStepC (AtribCond b x e1 e2, s) = (If b (Atrib x e1) (Atrib x e2), s)
+
+-- Swap (Var x) (Var y): troca o conteúdo das variáveis x e y atomicamente
+-- Lê os valores de x e y no estado atual e produz Skip com memória atualizada
+smallStepC (Swap (Var x) (Var y), s) =
+  let vx = procuraVar s x
+      vy = procuraVar s y
+  in (Skip, mudaVar (mudaVar s x vy) y vx)
 
 ----------------------
 --  INTERPRETADORES
@@ -162,16 +228,13 @@ interpretadorE (e,s) = if (isFinalE e) then (e,s) else interpretadorE (smallStep
 
 --- Interpretador para expressões booleanas
 
-
 isFinalB :: B -> Bool
 isFinalB TRUE    = True
 isFinalB FALSE   = True
 isFinalB _       = False
 
--- Descomentar quanto a função smallStepB estiver implementada:
-
---interpretadorB :: (B,Memoria) -> (B, Memoria)
---interpretadorB (b,s) = if (isFinalB b) then (b,s) else interpretadorB (smallStepB (b,s))
+interpretadorB :: (B,Memoria) -> (B, Memoria)
+interpretadorB (b,s) = if (isFinalB b) then (b,s) else interpretadorB (smallStepB (b,s))
 
 
 -- Interpretador da Linguagem Imperativa
@@ -180,19 +243,14 @@ isFinalC :: C -> Bool
 isFinalC Skip    = True
 isFinalC _       = False
 
--- Descomentar quando a função smallStepC estiver implementada:
-
---interpretadorC :: (C,Memoria) -> (C, Memoria)
---interpretadorC (c,s) = if (isFinalC c) then (c,s) else interpretadorC (smallStepC (c,s))
+interpretadorC :: (C,Memoria) -> (C, Memoria)
+interpretadorC (c,s) = if (isFinalC c) then (c,s) else interpretadorC (smallStepC (c,s))
 
 
 --------------------------------------
 ---
 --- Exemplos de programas para teste
 ---
---- O ALUNO DEVE IMPLEMENTAR EXEMPLOS DE PROGRAMAS QUE USEM 
---- OS COMANDOS NOVOS PRINCIPALMENTE O TRATAMENTO DE EXCEÇÕES
---
 
 exSigma2 :: Memoria
 exSigma2 = [("x",3), ("y",0), ("z",0)]
@@ -223,10 +281,6 @@ progExp1 = Soma (Num 3) (Soma (Var "x") (Var "y"))
 -- (Num 6,[("x",3),("y",0),("z",0)])
 
 
---- Para rodar os próximos programas é necessário primeiro implementar as regras que faltam
---- e descomentar os respectivos interpretadores
-
-
 ---
 --- Exemplos de expressões booleanas:
 
@@ -242,7 +296,7 @@ teste2 = (Leq (Soma (Var "x") (Num 3))  (Mult (Num 2) (Num 3)))
 -- Exemplos de Programas Imperativos:
 
 testec1 :: C
-testec1 = (Seq (Seq (Atrib (Var "z") (Var "x")) (Atrib (Var "x") (Var "y"))) 
+testec1 = (Seq (Seq (Atrib (Var "z") (Var "x")) (Atrib (Var "x") (Var "y")))
                (Atrib (Var "y") (Var "z")))
 
 fatorial :: C
@@ -250,3 +304,71 @@ fatorial = (Seq (Atrib (Var "y") (Num 1))
                 (While (Not (Igual (Var "x") (Num 1)))
                        (Seq (Atrib (Var "y") (Mult (Var "y") (Var "x")))
                             (Atrib (Var "x") (Sub (Var "x") (Num 1))))))
+
+
+--------------------------------------
+--- Exemplos dos novos comandos:
+---
+--- exSigma3: memória para os exemplos abaixo
+--- x=5, y=0, z=0
+
+exSigma3 :: Memoria
+exSigma3 = [("x",5), ("y",0), ("z",0)]
+
+---
+--- TenTimes: soma 1 a x, 10 vezes (resultado: x = 15)
+---
+--- *Main> interpretadorC (exTenTimes, exSigma3)
+--- (Skip,[("x",15),("y",0),("z",0)])
+
+exTenTimes :: C
+exTenTimes = TenTimes (Atrib (Var "x") (Soma (Var "x") (Num 1)))
+
+---
+--- Repeat: incrementa x até que x seja igual a 10
+--- (repeat { x:=x+1 } until x==10)
+---
+--- *Main> interpretadorC (exRepeat, exSigma3)
+--- (Skip,[("x",10),("y",0),("z",0)])
+
+exRepeat :: C
+exRepeat = Repeat (Atrib (Var "x") (Soma (Var "x") (Num 1)))
+                  (Igual (Var "x") (Num 10))
+
+---
+--- Loop: executa y:=y+x exatamente (10-5)=5 vezes (resultado: y = 5*5 = 25)
+---
+--- *Main> interpretadorC (exLoop, exSigma3)
+--- (Skip,[("x",5),("y",25),("z",0)])
+
+exLoop :: C
+exLoop = Loop (Num 5) (Num 10) (Atrib (Var "y") (Soma (Var "y") (Var "x")))
+
+---
+--- DuplaATrib: atribui x:=10 e y:=20 simultaneamente
+---
+--- *Main> interpretadorC (exDuplaAtrib, exSigma3)
+--- (Skip,[("x",10),("y",20),("z",0)])
+
+exDuplaAtrib :: C
+exDuplaAtrib = DuplaATrib (Var "x") (Var "y") (Num 10) (Num 20)
+
+---
+--- AtribCond: se x<=5 então z:=1, senão z:=2
+--- Como x=5, a condição é verdadeira e z recebe 1
+---
+--- *Main> interpretadorC (exAtribCond, exSigma3)
+--- (Skip,[("x",5),("y",0),("z",1)])
+
+exAtribCond :: C
+exAtribCond = AtribCond (Leq (Var "x") (Num 5)) (Var "z") (Num 1) (Num 2)
+
+---
+--- Swap: troca o conteúdo de x e y
+--- x=5, y=0 → após swap: x=0, y=5
+---
+--- *Main> interpretadorC (exSwap, exSigma3)
+--- (Skip,[("x",0),("y",5),("z",0)])
+
+exSwap :: C
+exSwap = Swap (Var "x") (Var "y")
