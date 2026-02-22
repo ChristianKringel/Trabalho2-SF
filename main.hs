@@ -489,3 +489,87 @@ runSort3Vars a b c = do
     let ySorted = procuraVar memFinal "y"
     let zSorted = procuraVar memFinal "z"
     putStrLn $ "Sorted values: " ++ show xSorted ++ ", " ++ show ySorted ++ ", " ++ show zSorted ++ "\n"
+
+
+--------------------------------------
+--- Triângulo de Pascal
+--------------------------------------
+
+--- Divisão inteira: q = a div b (subtrações repetidas)
+--- Entrada: a, b  |  Saída: q  |  Aux: r
+divImp :: C
+divImp =
+  Seq (Atrib (Var "q") (Num 0))
+      (Seq (Atrib (Var "r") (Var "a"))
+           (While (Leq (Var "b") (Var "r"))
+                  (Seq (Atrib (Var "q") (Soma (Var "q") (Num 1)))
+                       (Atrib (Var "r") (Sub (Var "r") (Var "b"))))))
+
+--- Calcula C(n, k) usando a fórmula multiplicativa:
+---   C(n, 0) = 1
+---   C(n, k) = C(n, k-1) * (n - k + 1) / k
+--- A cada passo j (de 1 até k): res = res * (n - j + 1) / j
+--- A divisão é sempre exata (C(n,k) é sempre inteiro)
+--- Entrada: n, k  |  Saída: res  |  Aux: j, a, b, q, r
+calculaPascalElem :: C
+calculaPascalElem =
+  Seq (Atrib (Var "res") (Num 1))
+      (Seq (Atrib (Var "j") (Num 1))
+           (While (Leq (Var "j") (Var "k"))
+                  (Seq (Atrib (Var "a") (Mult (Var "res") (Sub (Soma (Var "n") (Num 1)) (Var "j"))))
+                       (Seq (Atrib (Var "b") (Var "j"))
+                            (Seq divImp
+                                 (Seq (Atrib (Var "res") (Var "q"))
+                                      (Atrib (Var "j") (Soma (Var "j") (Num 1)))))))))
+
+--- Calcula os espaços iniciais da linha i:
+---   spaces = h - i  (onde h = altura - 1)
+--- Cada elemento ocupa 2 caracteres (dígito + espaço), então
+--- o triângulo fica centralizado para números de 1 dígito.
+--- Entrada: h (= altura - 1), i  |  Saída: spaces
+calculaLinhaPascal :: C
+calculaLinhaPascal = Atrib (Var "spaces") (Sub (Var "h") (Var "i"))
+
+--- Desenha a linha i do triângulo de altura `altura`:
+---   1. Usa interpretadorC em calculaLinhaPascal para obter os espaços
+---   2. Para cada coluna k de 0 até i, usa interpretadorC em calculaPascalElem
+---      para calcular C(i, k) e imprime o valor
+desenhaLinhaPascal :: Int -> Int -> IO ()
+desenhaLinhaPascal altura linhaAtual = do
+    let memLinha = [("h", altura - 1), ("i", linhaAtual), ("spaces", 0)]
+    let (_, memEspacos) = interpretadorC (calculaLinhaPascal, memLinha)
+    let espacos = procuraVar memEspacos "spaces"
+    putStr (replicate espacos ' ')
+    mapM_ (\k -> do
+        let mem = [("n", linhaAtual), ("k", k), ("res", 0),
+                   ("j", 0), ("a", 0), ("b", 0), ("q", 0), ("r", 0)]
+        let (_, m) = interpretadorC (calculaPascalElem, mem)
+        putStr (show (procuraVar m "res") ++ " ")
+        ) [0..linhaAtual]
+    putStrLn ""
+
+--- Loop que percorre as linhas de i até altura-1,
+--- usando interpretadorB para checar a condição (mesmo padrão da árvore)
+executaLoopPascal :: Int -> Int -> IO ()
+executaLoopPascal altura i = do
+    if fst (interpretadorB (Leq (Num i) (Num (altura - 1)), [])) == FALSE
+       then return ()
+       else do
+           desenhaLinhaPascal altura i
+           executaLoopPascal altura (i + 1)
+
+printPascal :: Int -> IO ()
+printPascal altura = executaLoopPascal altura 0
+
+--- Para rodar:
+--- *Main> runPascal 5
+---     1
+---    1 1
+---   1 2 1
+---  1 3 3 1
+--- 1 4 6 4 1
+
+runPascal :: Int -> IO ()
+runPascal n = do
+    putStrLn $ "Triangulo de Pascal (" ++ show n ++ " linhas):"
+    printPascal n
